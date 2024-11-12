@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +27,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import Image from "next/image"
+import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
+import type { Database } from '@/types/database'
 
 // Données fictives pour les agences
 const agences = [
@@ -100,16 +103,54 @@ export function SystemeDeReclamation() {
   const [emailBody, setEmailBody] = useState('')
   const [selectedReclamationForEmail, setSelectedReclamationForEmail] = useState<Reclamation | null>(null)
 
-  const gererConnexion = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (userData?.role === 'admin') {
+          setRoleUtilisateur('admin')
+        } else {
+          setRoleUtilisateur('utilisateur')
+        }
+      }
+    }
+    
+    checkAuth()
+  }, [])
+
+  const gererConnexion = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (connexionEn === 'admin' && nomUtilisateur === 'admin' && motDePasse === 'admin') {
-      setRoleUtilisateur('admin')
-    } else if (connexionEn === 'utilisateur' && nomUtilisateur === 'utilisateur' && motDePasse === 'utilisateur') {
-      setRoleUtilisateur('utilisateur')
-      // Simuler la récupération des réclamations de l'utilisateur
-      setReclamationsUtilisateur(reclamations.filter(r => r.email === 'jean@exemple.com'))
-    } else {
-      alert('Nom d\'utilisateur ou mot de passe invalide')
+    setLoading(true)
+    setError(null)
+    try {
+      const { data: authData } = await api.auth.signIn(nomUtilisateur, motDePasse)
+      if (!authData.user) throw new Error('Authentication failed')
+
+      const complaints = connexionEn === 'admin' 
+        ? await api.complaints.getAll()
+        : await api.complaints.getByUser(authData.user.id)
+
+      if (connexionEn === 'admin') {
+        setRoleUtilisateur('admin')
+        setReclamations(complaints)
+      } else {
+        setRoleUtilisateur('utilisateur')
+        setReclamationsUtilisateur(complaints)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setError('Erreur de connexion. Veuillez réessayer.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -212,31 +253,44 @@ export function SystemeDeReclamation() {
     setReclamationsUtilisateur(reclamationsFiltrees)
   }
 
-  const gererSoumissionReclamation = () => {
-    const reclamationSoumise: Reclamation = {
-      id: Date.now(),
-      nomClient: nouvelleReclamation.nomClient || '',
-      email: nouvelleReclamation.email || '',
-      numeroCompte: nouvelleReclamation.numeroCompte || '',
-      typeReclamation: nouvelleReclamation.typeReclamation || '',
-      statut: 'En attente',
-      dateSoumission: new Date().toISOString().split('T')[0],
-      agenceId: nouvelleReclamation.agenceId || 0,
+  const gererSoumissionReclamation = async () => {
+    try {
+      const { data } = await api.auth.getSession()
+      if (!data.user) throw new Error('Not authenticated')
+
+      // Make sure agenceId is not undefined
+      if (!nouvelleReclamation.agenceId) {
+        throw new Error('Agency ID is required')
+      }
+
+      const complaint = {
+        user_id: data.user.id,
+        agency_id: nouvelleReclamation.agenceId,
+        account_number: nouvelleReclamation.numeroCompte || '',
+        type: nouvelleReclamation.typeReclamation || '',
+        status: 'En attente' as const,
+        description: nouvelleReclamation.description || ''
+      } as const
+
+      const newComplaint = await api.complaints.create(complaint)
+      setReclamationsUtilisateur([newComplaint, ...reclamationsUtilisateur])
+      
+      alert('Réclamation soumise avec succès !')
+      setEtape(1)
+      setProgres(25)
+      setNouvelleReclamation({
+        nomClient: '',
+        email: '',
+        agenceId: 0,
+        numeroCompte: '',
+        typeReclamation: '',
+        description: '',
+      })
+      setFichierSelectionnes([])
+    } catch (error) {
+      console.error('Error submitting complaint:', error)
+      alert('Erreur lors de la soumission de la réclamation')
     }
-    setReclamations([reclamationSoumise, ...reclamations])
-    setReclamationsUtilisateur([reclamationSoumise, ...reclamationsUtilisateur])
-    alert('Réclamation soumise avec succès !')
-    setEtape(1)
-    setProgres(25)
-    setNouvelleReclamation({
-      nomClient: '',
-      email: '',
-      agenceId: 0,
-      numeroCompte: '',
-      typeReclamation: '',
-      description: '',
-    })
-    setFichierSelectionnes([])
   }
 
   const reclamationsFiltrees = reclamations.filter(reclamation =>

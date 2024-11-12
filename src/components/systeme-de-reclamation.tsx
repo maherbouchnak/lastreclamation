@@ -284,7 +284,7 @@ export function SystemeDeReclamation() {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Image 
-              src="logo.png"
+              src="/logo.png"
               alt="Banque Attijari Logo"
               width={40}
               height={40}

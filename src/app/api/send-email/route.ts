@@ -1,5 +1,19 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import type { TransportOptions } from 'nodemailer';
+
+interface EmailPayload {
+  to: string;
+  subject: string;
+  body: string;
+  reclamation: {
+    id: number;
+    nomClient: string;
+    typeReclamation: string;
+    statut: string;
+    dateSoumission: string;
+  };
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -7,11 +21,12 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
-});
+} as TransportOptions);
 
 export async function POST(req: Request) {
   try {
-    const { to, subject, body, reclamation } = await req.json();
+    const payload: EmailPayload = await req.json();
+    const { to, subject, body, reclamation } = payload;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(to bottom right, #fff7ed, #ffe4e6); border-radius: 24px; border: 1px solid #fdba74;">

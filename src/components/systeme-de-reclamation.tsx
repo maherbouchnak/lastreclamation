@@ -1,18 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { AlertCircle, CheckCircle2, Edit, Trash2, Plus, HelpCircle, MessageCircle, Upload, FileText, Clock, User, Briefcase, MapPin, Mail } from 'lucide-react'
+import { Edit, Trash2, Plus, Upload, FileText, Clock, User, Briefcase, MapPin, Mail, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
   Command,
@@ -285,15 +284,15 @@ export function SystemeDeReclamation() {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Image 
-              src="logo.png"
+              src="/images/logo.png"
               alt="Banque Attijari Logo"
               width={40}
               height={40}
               className="rounded-full"
               priority
-              onError={(e: any) => {
+              onError={(e) => {
                 console.error('Error loading image:', e);
-                e.target.src = 'https://placehold.co/40x40?text=A'; // Fallback image
+                e.currentTarget.src = 'https://placehold.co/40x40?text=A';
               }}
             />
             <span className="text-xl font-bold">Banque Attijari</span>
